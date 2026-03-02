@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../api';
 
 
 function Payments() {
@@ -13,9 +13,7 @@ function Payments() {
 
     const fetchOrders = async () => {
         try {
-            const res = await axios.get('http://localhost:5000/api/payment/orders', {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const res = await api.get('/payment/orders');
             setOrders(res.data);
             setLoading(false);
         } catch (error) {

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Briefcase, Plus, Search, Edit2, Trash2, Bell, X, Save, Filter } from 'lucide-react';
 import { fetchVacancies as apiFetchVacancies, createVacancy, updateVacancy, deleteVacancy } from '../api';
-import axios from 'axios';
+import api from '../api';
 
 const EXAM_CATEGORIES = ['SSC', 'Railway', 'Banking', 'Defence', 'Teaching', 'UPSC', 'State', 'JEE', 'NEET', 'CUET'];
 const STATUS_OPTIONS = ['Active', 'Upcoming', 'Closed'];
@@ -108,14 +108,11 @@ export default function VacancyManagement() {
     const sendNotification = async () => {
         try {
             setLoading(true);
-            const token = localStorage.getItem('adminToken');
-            const response = await axios.post('http://localhost:5000/api/notifications/send', {
+            const response = await api.post('/notifications/send', {
                 title: form.title || 'New Vacancy Alert',
                 body: notifyMsg,
                 examCategory: form.examCategory,
                 alertType: 'newVacancies'
-            }, {
-                headers: { Authorization: `Bearer ${token}` }
             });
 
             alert(`Success! Notification sent to ${response.data.sent} devices.`);

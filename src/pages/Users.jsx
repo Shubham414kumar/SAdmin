@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../api';
 import { Edit2, Shield, Trash2 } from 'lucide-react';
 
 function Users() {
@@ -14,9 +14,7 @@ function Users() {
 
     const fetchUsers = async () => {
         try {
-            const res = await axios.get('http://localhost:5000/api/auth/users', {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const res = await api.get('/auth/users');
             setUsers(res.data);
             setLoading(false);
         } catch (error) {
@@ -28,9 +26,7 @@ function Users() {
     const toggleRole = async (userId, currentRole) => {
         const newRole = currentRole === 'admin' ? 'student' : 'admin';
         try {
-            await axios.put(`http://localhost:5000/api/auth/users/${userId}/role`, { role: newRole }, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            await api.put(`/auth/users/${userId}/role`, { role: newRole });
             // Update local state
             setUsers(users.map(u => u._id === userId ? { ...u, role: newRole } : u));
         } catch (error) {
@@ -41,9 +37,7 @@ function Users() {
     const deleteUser = async (userId) => {
         if (!window.confirm("Are you sure you want to delete this user?")) return;
         try {
-            await axios.delete(`http://localhost:5000/api/auth/users/${userId}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            await api.delete(`/auth/users/${userId}`);
             setUsers(users.filter(u => u._id !== userId));
         } catch (error) {
             alert(error.response?.data?.message || 'Failed to delete user');
@@ -105,8 +99,8 @@ function Users() {
                                                     disabled={user._id === adminUser?.id}
                                                     title={user.role === 'admin' ? "Demote to Student" : "Promote to Admin"}
                                                     className={`p-1.5 rounded-lg transition-colors ${user._id === adminUser?.id
-                                                            ? 'text-gray-600 bg-gray-800 cursor-not-allowed'
-                                                            : 'text-indigo-400 hover:bg-indigo-500/20 bg-indigo-500/10'
+                                                        ? 'text-gray-600 bg-gray-800 cursor-not-allowed'
+                                                        : 'text-indigo-400 hover:bg-indigo-500/20 bg-indigo-500/10'
                                                         }`}
                                                 >
                                                     <Shield size={16} />
@@ -116,8 +110,8 @@ function Users() {
                                                     disabled={user._id === adminUser?.id}
                                                     title="Delete User"
                                                     className={`p-1.5 rounded-lg transition-colors ${user._id === adminUser?.id
-                                                            ? 'text-gray-600 bg-gray-800 cursor-not-allowed'
-                                                            : 'text-red-400 hover:bg-red-500/20 bg-red-500/10'
+                                                        ? 'text-gray-600 bg-gray-800 cursor-not-allowed'
+                                                        : 'text-red-400 hover:bg-red-500/20 bg-red-500/10'
                                                         }`}
                                                 >
                                                     <Trash2 size={16} />

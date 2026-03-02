@@ -1,7 +1,9 @@
 import axios from 'axios';
 
+const API_BASE = import.meta.env.VITE_API_URL || 'https://saarthiprep-kfkl.onrender.com/api';
+
 const api = axios.create({
-    baseURL: 'http://localhost:5000/api', // Adjust if deployed
+    baseURL: API_BASE,
 });
 
 // Add a request interceptor to inject the token
@@ -14,6 +16,22 @@ api.interceptors.request.use(
         return config;
     },
     (error) => Promise.reject(error)
+);
+
+// Add a response interceptor to handle expired/invalid tokens
+api.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response && error.response.status === 401) {
+            // Token expired or invalid — force logout
+            localStorage.removeItem('adminToken');
+            localStorage.removeItem('adminUser');
+            // Redirect to login
+            window.location.hash = '#/login';
+            window.location.reload();
+        }
+        return Promise.reject(error);
+    }
 );
 
 export const uploadFile = async (file) => {

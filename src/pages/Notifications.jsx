@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Bell, Send, Filter, Clock, Users, CheckCircle, X } from 'lucide-react';
-import axios from 'axios';
+import api from '../api';
 
 const EXAM_CATEGORIES = ['SSC', 'Railway', 'Banking', 'Defence', 'Teaching', 'UPSC', 'State', 'JEE', 'NEET', 'CUET'];
 const ALERT_TYPES = ['newVacancies', 'results', 'admitCards', 'deadlines'];
@@ -19,10 +19,7 @@ export default function NotificationManagement() {
     const fetchHistory = async () => {
         setLoading(true);
         try {
-            const token = localStorage.getItem('adminToken');
-            const res = await axios.get('http://localhost:5000/api/notifications/history', {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const res = await api.get('/notifications/history');
             setHistory(res.data);
         } catch (error) {
             console.error('Failed to fetch history:', error);
@@ -35,16 +32,13 @@ export default function NotificationManagement() {
         if (!form.title || !form.body) return alert('Title and Body are required');
         setSending(true);
         try {
-            const token = localStorage.getItem('adminToken');
-            const response = await axios.post('http://localhost:5000/api/notifications/send',
+            const response = await api.post('/notifications/send',
                 {
                     title: form.title,
                     body: form.body,
                     examCategory: form.examCategory === 'All' ? undefined : form.examCategory,
                     alertType: form.alertType
-                }, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+                });
 
             const sentCount = response.data.sent;
 

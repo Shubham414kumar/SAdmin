@@ -1,5 +1,5 @@
 import React, { useState, createContext, useContext } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import CourseManagement from './pages/Courses';
@@ -32,7 +32,8 @@ function AdminLogin({ onLogin }) {
     setError('');
 
     try {
-      const response = await fetch('http://localhost:5000/api/auth/admin-login', {
+      const apiBase = import.meta.env.VITE_API_URL || 'https://saarthiprep-kfkl.onrender.com/api';
+      const response = await fetch(`${apiBase}/auth/admin-login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
@@ -159,7 +160,7 @@ function AdminLogin({ onLogin }) {
         </form>
 
         <p style={{ color: '#4B5563', fontSize: 11, textAlign: 'center', marginTop: 20 }}>
-          Admin: shubhankumarkir@gmail.com / @Shubham2004
+          SaarthiPrep Admin Access Only
         </p>
       </div>
     </div>
@@ -186,7 +187,7 @@ function App() {
 
   return (
     <AuthContext.Provider value={{ user, logout: handleLogout }}>
-      <BrowserRouter>
+      <HashRouter>
         <Routes>
           <Route path="/login" element={
             user ? <Navigate to="/" replace /> : <AdminLogin onLogin={handleLogin} />
@@ -210,7 +211,7 @@ function App() {
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-      </BrowserRouter>
+      </HashRouter>
     </AuthContext.Provider>
   );
 }
