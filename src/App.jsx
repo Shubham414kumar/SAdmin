@@ -32,7 +32,7 @@ function AdminLogin({ onLogin }) {
     setError('');
 
     try {
-      const apiBase = import.meta.env.VITE_API_URL || 'https://saarthiprep-kfkl.onrender.com/api';
+      const apiBase = 'https://saarthiprep-kfkl.onrender.com/api';
       const response = await fetch(`${apiBase}/auth/admin-login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
