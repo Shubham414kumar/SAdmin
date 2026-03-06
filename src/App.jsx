@@ -12,6 +12,7 @@ import Payments from './pages/Payments';
 import CurrentAffairs from './pages/CurrentAffairs';
 import StudyMaterials from './pages/StudyMaterials';
 import Quizzes from './pages/Quizzes';
+import api from './api';
 
 // Simple admin auth context
 const AuthContext = createContext(null);
@@ -32,28 +33,20 @@ function AdminLogin({ onLogin }) {
     setError('');
 
     try {
-      const apiBase = 'https://saarthiprep-kfkl.onrender.com/api';
-      const response = await fetch(`${apiBase}/auth/admin-login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
+      const response = await api.post('/auth/admin-login', { email, password });
+      const data = response.data;
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        setError(data.message || 'Failed to login');
-      } else {
-        localStorage.setItem('adminToken', data.token);
-        localStorage.setItem('adminUser', JSON.stringify(data.user));
-        onLogin(data.user);
-      }
+      localStorage.setItem('adminToken', data.token);
+      localStorage.setItem('adminUser', JSON.stringify(data.user));
+      onLogin(data.user);
     } catch (err) {
-      setError('Network error. Cannot reach server.');
+      const message = err.response?.data?.message || 'Network error. Cannot reach server.';
+      setError(message);
     } finally {
       setLoading(false);
     }
   };
+
 
   return (
     <div style={{
