@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE = 'http://localhost:5000/api';
+const API_BASE = 'https://saarthiprep-kfkl.onrender.com/api';
 
 const api = axios.create({
     baseURL: API_BASE,
@@ -72,6 +72,11 @@ export const deleteLesson = async (id) => {
 
 export const fetchCourses = async () => {
     const response = await api.get('/courses');
+    return response.data;
+};
+
+export const fetchCourseDetails = async (id) => {
+    const response = await api.get(`/courses/${id}`);
     return response.data;
 };
 
@@ -188,8 +193,16 @@ export const fetchQuizzes = async (studentClass = '') => {
     const response = await api.get(url);
     return response.data;
 };
+export const fetchQuizAdmin = async (id) => {
+    const response = await api.get(`/quizzes/${id}/admin`);
+    return response.data;
+};
 export const createQuiz = async (data) => {
     const response = await api.post('/quizzes', data);
+    return response.data;
+};
+export const updateQuiz = async (id, data) => {
+    const response = await api.put(`/quizzes/${id}`, data);
     return response.data;
 };
 export const deleteQuiz = async (id) => {

@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
-import { Plus, Search, Edit2, Trash2, Video, FileText, X, UploadCloud, CheckCircle, Image as ImageIcon } from 'lucide-react';
-import { fetchCourses, uploadFile, createLesson, createCourse, updateCourse, deleteCourse, deleteLesson } from '../api';
+import { Plus, Search, Edit2, Trash2, Video, FileText, X, UploadCloud, CheckCircle, Image as ImageIcon, BookOpen, FolderPlus } from 'lucide-react';
+import { fetchCourses, uploadFile, createLesson, createCourse, updateCourse, deleteCourse, deleteLesson, fetchCourseDetails } from '../api';
 
 const MOCK_COURSES = [
     { _id: '60b8d295f1d2a34567890123', title: 'Start typing to see real courses', category: 'General', students: 0, thumbnail: 'https://via.placeholder.com/150' },
 ];
 
-const CLASS_OPTIONS = ['9', '10', '11', '12', 'dropper'];
-const CATEGORY_OPTIONS = ['JEE', 'NEET', 'Board', 'Foundation', 'Teaching', 'UPSC'];
+const CLASS_OPTIONS = ['All', '9', '10', '11', '12', 'dropper', 'SSC', 'Banking'];
+const CATEGORY_OPTIONS = ['JEE', 'NEET', 'Board', 'Foundation', 'Teaching', 'UPSC', 'SSC', 'Banking'];
 
 export default function CourseManagement() {
     const [courses, setCourses] = useState([]);
@@ -20,6 +20,11 @@ export default function CourseManagement() {
 
     // Add Course Modal States
     const [isCourseModalOpen, setIsCourseModalOpen] = useState(false);
+
+    // Curriculum Modal States
+    const [isCurriculumModalOpen, setIsCurriculumModalOpen] = useState(false);
+    const [courseLessons, setCourseLessons] = useState([]);
+    const [loadingLessons, setLoadingLessons] = useState(false);
 
     // Video/PDF Form
     const [title, setTitle] = useState('');
@@ -57,13 +62,40 @@ export default function CourseManagement() {
         }
     };
 
+    // ------------- CURRICULUM MANAGEMENT -------------
+    const openCurriculumModal = async (course) => {
+        setSelectedCourse(course);
+        setIsCurriculumModalOpen(true);
+        setLoadingLessons(true);
+        try {
+            const data = await fetchCourseDetails(course._id);
+            setCourseLessons(data.lessons || []);
+        } catch (error) {
+            console.error('Failed to load lessons:', error);
+            alert('Failed to load lessons.');
+        } finally {
+            setLoadingLessons(false);
+        }
+    };
+
+    const handleDeleteLesson = async (lessonId) => {
+        if (!window.confirm('Are you sure you want to delete this lesson?')) return;
+        try {
+            await deleteLesson(lessonId);
+            setCourseLessons(courseLessons.filter(l => l._id !== lessonId));
+        } catch (error) {
+            console.error('Error deleting lesson:', error);
+            alert('Failed to delete lesson');
+        }
+    };
+
     // ------------- LESSON UPLOAD -------------
     const openUploadModal = (course, type) => {
-        setSelectedCourse(course);
+        if (course) setSelectedCourse(course);
         setUploadType(type);
         setFile(null);
         setTitle('');
-        setOrder(1);
+        setOrder(courseLessons.length > 0 ? courseLessons.length + 1 : 1);
         setUploadSuccess(false);
         setIsMenuModalOpen(true);
     };
@@ -89,12 +121,20 @@ export default function CourseManagement() {
                 lessonData.pdfUrl = secureUrl;
                 lessonData.videoUrl = 'none'; // quick schema fix
             }
+            if (uploadType === 'assignment') {
+                lessonData.assignmentUrl = secureUrl;
+                lessonData.videoUrl = 'none';
+            }
 
-            await createLesson(lessonData);
+            const newLesson = await createLesson(lessonData);
+            setCourseLessons(prev => [...prev, newLesson]);
 
             setUploadSuccess(true);
             setTimeout(() => {
                 setIsMenuModalOpen(false);
+                if (isCurriculumModalOpen) {
+                    openCurriculumModal(selectedCourse); // refresh
+                }
             }, 2000);
 
         } catch (error) {
@@ -242,20 +282,12 @@ export default function CourseManagement() {
                                 <p className="text-sm text-slate-400 line-clamp-2 mb-4">{course.description || 'No description available.'}</p>
 
                                 <div className="flex items-center justify-between text-slate-300 text-sm pt-4 border-t border-slate-700">
-                                    <div className="flex items-center space-x-3 w-full justify-around">
-                                        <button
-                                            onClick={() => openUploadModal(course, 'video')}
-                                            className="flex items-center hover:text-indigo-400 transition-colors bg-slate-900 px-3 py-2 rounded-lg"
-                                        >
-                                            <Video size={16} className="mr-2" /> Upload Video
-                                        </button>
-                                        <button
-                                            onClick={() => openUploadModal(course, 'pdf')}
-                                            className="flex items-center hover:text-pink-400 transition-colors bg-slate-900 px-3 py-2 rounded-lg"
-                                        >
-                                            <FileText size={16} className="mr-2" /> Upload PDF
-                                        </button>
-                                    </div>
+                                    <button
+                                        onClick={() => openCurriculumModal(course)}
+                                        className="flex items-center justify-center w-full hover:bg-slate-700 transition-colors bg-slate-900 px-3 py-3 rounded-xl font-bold text-indigo-400"
+                                    >
+                                        <BookOpen size={18} className="mr-2" /> Manage Curriculum
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -369,7 +401,7 @@ export default function CourseManagement() {
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="text-xl font-bold text-white flex items-center">
                                 <UploadCloud className="mr-2 text-indigo-400" />
-                                Upload {uploadType === 'video' ? 'Video Lesson' : 'PDF Notes'}
+                                Upload {uploadType === 'video' ? 'Video Lesson' : uploadType === 'pdf' ? 'PDF Notes' : 'Assignment'}
                             </h3>
                             <button onClick={() => setIsMenuModalOpen(false)} className="text-slate-400 hover:text-white">
                                 <X size={24} />
@@ -388,7 +420,7 @@ export default function CourseManagement() {
                                     <input
                                         type="text" required value={title} onChange={(e) => setTitle(e.target.value)}
                                         className="w-full bg-slate-900 border border-slate-700 text-white px-4 py-2 rounded-lg focus:outline-none focus:border-indigo-500"
-                                        placeholder={`E.g., ${uploadType === 'pdf' ? 'Chapter 1 Notes' : 'Intro to Physics'}`}
+                                        placeholder={`E.g., ${uploadType === 'pdf' ? 'Chapter 1 Notes' : uploadType === 'assignment' ? 'Weekly Assignment' : 'Intro to Physics'}`}
                                     />
                                 </div>
                                 <div className="flex gap-4">
@@ -432,6 +464,80 @@ export default function CourseManagement() {
                                 </button>
                             </form>
                         )}
+                    </div>
+                </div>
+            )}
+            {/*  =================== CURRICULUM MODAL =================== */}
+            {isCurriculumModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+                    <div className="bg-slate-800 p-6 rounded-2xl w-full max-w-4xl border border-slate-700 shadow-2xl max-h-[90vh] flex flex-col">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-xl font-bold text-white flex items-center">
+                                <BookOpen className="mr-2 text-indigo-400" />
+                                Manage Curriculum: {selectedCourse?.title}
+                            </h3>
+                            <button onClick={() => setIsCurriculumModalOpen(false)} className="text-slate-400 hover:text-white">
+                                <X size={24} />
+                            </button>
+                        </div>
+
+                        <div className="flex gap-4 mb-6">
+                            <button
+                                onClick={() => openUploadModal(selectedCourse, 'video')}
+                                className="flex-1 py-3 bg-indigo-600/20 text-indigo-400 hover:bg-indigo-600 hover:text-white rounded-xl transition-all flex items-center justify-center font-semibold border border-indigo-500/30"
+                            >
+                                <Video size={18} className="mr-2" /> Add Video
+                            </button>
+                            <button
+                                onClick={() => openUploadModal(selectedCourse, 'pdf')}
+                                className="flex-1 py-3 bg-pink-600/20 text-pink-400 hover:bg-pink-600 hover:text-white rounded-xl transition-all flex items-center justify-center font-semibold border border-pink-500/30"
+                            >
+                                <FileText size={18} className="mr-2" /> Add PDF Notes
+                            </button>
+                            <button
+                                onClick={() => openUploadModal(selectedCourse, 'assignment')}
+                                className="flex-1 py-3 bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600 hover:text-white rounded-xl transition-all flex items-center justify-center font-semibold border border-emerald-500/30"
+                            >
+                                <FolderPlus size={18} className="mr-2" /> Add Assignment
+                            </button>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto pr-2 space-y-3">
+                            {loadingLessons ? (
+                                <div className="text-center text-slate-400 py-10">Loading lessons...</div>
+                            ) : courseLessons.length === 0 ? (
+                                <div className="text-center text-slate-500 py-10 border-2 border-dashed border-slate-700 rounded-xl">
+                                    No content added yet. Click above to add some.
+                                </div>
+                            ) : (
+                                courseLessons.map((lesson) => (
+                                    <div key={lesson._id} className="bg-slate-900 border border-slate-700 p-4 rounded-xl flex items-center justify-between group hover:border-indigo-500/50 transition-colors">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-10 h-10 rounded-lg bg-slate-800 flex items-center justify-center text-slate-400">
+                                                {lesson.videoUrl && lesson.videoUrl !== 'none' ? <Video size={20} className="text-indigo-400" /> :
+                                                 lesson.pdfUrl ? <FileText size={20} className="text-pink-400" /> :
+                                                 <FolderPlus size={20} className="text-emerald-400" />}
+                                            </div>
+                                            <div>
+                                                <h4 className="text-white font-semibold">{lesson.title}</h4>
+                                                <div className="text-xs text-slate-500 flex gap-3 mt-1">
+                                                    <span>Order: {lesson.order}</span>
+                                                    <span className="capitalize text-indigo-300">
+                                                        {lesson.videoUrl && lesson.videoUrl !== 'none' ? 'Video' : lesson.pdfUrl ? 'PDF Note' : 'Assignment'}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <button 
+                                            onClick={() => handleDeleteLesson(lesson._id)}
+                                            className="p-2 text-slate-500 hover:text-pink-500 hover:bg-pink-500/10 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
+                                        >
+                                            <Trash2 size={18} />
+                                        </button>
+                                    </div>
+                                ))
+                            )}
+                        </div>
                     </div>
                 </div>
             )}
